@@ -26,24 +26,31 @@ namespace GdalFileIO{
       }
       return dataset1;
     }
+    // virtual const char * GetProjectionRef(GDALDataset* file){
+    //   virtual const char *size;
+    //   file->GetProjectionRef()
+    //   return size;
+    //
+    // }
 
-    bool dimensionsmatch(GDALDataset* dataset1, GDALDataset* dataset2){
-      /* Check that dimensions of the two files match in X, Y, and num. bands */
-      if(dataset1->GetRasterXSize() != dataset2->GetRasterXSize()){
-        cout << "X-dimension mismatch in images. Exiting..." << endl;
-        return false;
-      }
-      if(dataset1->GetRasterYSize() != dataset2->GetRasterYSize()){
-        cout << "Y-dimension mismatch in images. Exiting..." << endl;
-        return false;
-      }
-      if(dataset1->GetRasterCount() != dataset2->GetRasterCount()){
-        cout << "Raster count mismatch in images. Exiting..." << endl;
-        return false;
-      }
-      //All dimensions match!
-      return true;
-    }
+
+    // bool dimensionsmatch(GDALDataset* dataset1, GDALDataset* dataset2){
+    //   /* Check that dimensions of the two files match in X, Y, and num. bands */
+    //   if(dataset1->GetRasterXSize() != dataset2->GetRasterXSize()){
+    //     cout << "X-dimension mismatch in images. Exiting..." << endl;
+    //     return false;
+    //   }
+    //   if(dataset1->GetRasterYSize() != dataset2->GetRasterYSize()){
+    //     cout << "Y-dimension mismatch in images. Exiting..." << endl;
+    //     return false;
+    //   }
+    //   if(dataset1->GetRasterCount() != dataset2->GetRasterCount()){
+    //     cout << "Raster count mismatch in images. Exiting..." << endl;
+    //     return false;
+    //   }
+    //   //All dimensions match!
+    //   return true;
+    // }
 
     vector<int>* selectBands(){
       vector<int>* bands = new vector<int>();

@@ -49,17 +49,18 @@ b*e used as points of no change for radiometric normalization. Using the (x,y
 ***************************************************************************/
 
 using namespace std;
-using Eigen::MatrixXf;//this represents a matrix of arbitrary size (hence the X in MatrixXd), in which every entry is a doubl
-using Eigen::VectorXf;
+using Eigen::MatrixXd;//this represents a matrix of arbitrary size (hence the X in MatrixXd), in which every entry is a doubl
+using Eigen::VectorXd;
+
 
 
 /**************************************************************************
 *   Data points input
 ***************************************************************************/
-vector<pair<int,int> > * xyget(int n){
+vector<pair<int,int> > * xyget(){
 
    vector<pair<int,int> > * generatedpoints = new vector<pair<int,int> >();
-   generatedpoints->push_back(make_pair(3637,13794));
+   generatedpoints->push_back(make_pair(1,1));
    generatedpoints->push_back(make_pair(9733	,11170	));
    generatedpoints->push_back(make_pair(10946, 3574));
 
@@ -79,7 +80,7 @@ vector<pair<int,int> > * xyget(int n){
 ***************************************************************************/
 
 bool LinearRegression::LeastSquaresEstimate(std::vector<double>& x,
-std::vector<double>& y, RESULTS& results)
+std::vector<double>& y, RESULTS& results)// needs to return vector of gain and offset information
 {
    int numPts = x.size();
    if(numPts < 2)
@@ -168,13 +169,13 @@ std::vector<double>& y, RESULTS& results)
             GDALDataset* file1 = GdalFileIO::openFile(filename);
             GDALDataset* file2 = GdalFileIO::openFile(filenameagain);
 
-            vector<pair<int,int> > *generatedpoints = xyget(10);
+            vector<pair<int,int> > *generatedpoints = xyget();
 
             int   nXSize = file1->GetRasterXSize();
             int   nYSize = file1-> GetRasterYSize();
-            int numpoints = sizeof(generatedpoints);
+            int numpoints =generatedpoints->size();
             int numbands = file1->GetRasterCount();
-            MatrixXf pixValsMat(numbands,numpoints);
+            MatrixXd pixValsMat(numbands,numpoints); // need to change to doubles
             GDALRasterBand *rasterband;
             int nBlockXSize, nBlockYSize;
 
@@ -185,9 +186,9 @@ std::vector<double>& y, RESULTS& results)
                   int pixel= generatedpoints-> at(point).first;
                   int line = generatedpoints-> at(point).second;
                   int nXSize = rasterband->GetXSize();
-                  float * value;
-                  value = (float *) CPLMalloc(sizeof(float)*nXSize);
-                  rasterband->RasterIO( GF_Read, pixel, line, 1, 1,value, 1 /*nXSize*/, 1, GDT_Float32,
+                  double * value;
+                  value = (double *) CPLMalloc(sizeof(double)*nXSize);
+                  rasterband->RasterIO( GF_Read, pixel, line, 1, 1,value, 1 /*nXSize*/, 1, GDT_Float64,
                   0, 0 );
                   pixValsMat(band-1, point)=*value;
                   //cout << *value<< "\n";
@@ -195,24 +196,77 @@ std::vector<double>& y, RESULTS& results)
                   CPLFree(value);
                }
             }
+            MatrixXd pixValsMat2(numbands,numpoints);
+            for( int band=1;band<numbands+1;band++){
+               //cout << "_____" << "band" << i << "____"<<"\n";
+               for(int point = 0;point<numpoints; point++){
+                  rasterband = file2->GetRasterBand(band);
+                  int pixel= generatedpoints-> at(point).first;
+                  int line = generatedpoints-> at(point).second;
+                  int nXSize = rasterband->GetXSize();
+                  double * value;
+                  value = (double *) CPLMalloc(sizeof(double)*nXSize);
+                  rasterband->RasterIO( GF_Read, pixel, line, 1, 1,value, 1 /*nXSize*/, 1, GDT_Float64,
+                  0, 0 );
+                  pixValsMat2(band-1, point)=*value;
+                  //cout << *value<< "\n";
+
+                  CPLFree(value);
+               }
+            }
+            // for(int x=0;x<numbands;x++)  // loop 3 times for three lines
+            //    {
+            //       for(int y=0;y<numpoints;y++)  // loop for the three elements on the line
+            //          {
+            //             cout<<pixValsMat(x,y)<<" ";  // display the current element out of the array
+            //          }
+            //          cout<<endl;  // when the inner loop is done, go to a new line
+            //       }
+
+            /*run Regression*/
+            MatrixXd lrparams(numbands,2);
+
+            // vectors are rows, pass vectors to linreg
+            for(int band =0; band < numbands; band++){
+            LinearRegression lin =LinearRegression();
+            double pixValsArr [numpoints];
+            for( int pixel = 0; pixel <numpoints; pixel++){
+               pixValsArr[pixel] = pixValsMat(band,pixel);
+            }
+            vector<double> pixValsVec (pixValsArr, pixValsArr + sizeof(pixValsArr) / sizeof(double) );
+
+            double pixValsArr2[numpoints];
+            for( int pixel = 0; pixel <numpoints; pixel++){
+               pixValsArr2[pixel] = pixValsMat2(band,pixel);
+            }
+            vector<double> pixValsVec2 (pixValsArr2, pixValsArr2 + sizeof(pixValsArr2) / sizeof(double) );
+            LinearRegression::RESULTS results = LinearRegression::RESULTS();
+            lin.LeastSquaresEstimate(pixValsVec, pixValsVec2,results);//member function
+            double gain = results.slope;
+            cout << "gain for band n : " <<gain <<"\n";
+            double offset = results.offset;
+            cout << "offset for band n : " <<offset <<"\n";
+            lrparams(band,0)=gain;
+            lrparams(band,1)=offset;
+
+            }
             for(int x=0;x<numbands;x++)  // loop 3 times for three lines
                {
-                  for(int y=0;y<numpoints;y++)  // loop for the three elements on the line
+                  for(int y=0;y<2;y++)  // loop for the three elements on the line
                      {
-                        cout<<pixValsMat(x,y)<<" ";  // display the current element out of the array
+                        cout<<lrparams(x,y)<<" ";  // display the current element out of the array
                      }
                      cout<<endl;  // when the inner loop is done, go to a new line
                   }
 
-            /*run Regression*/
-             for(int band = 1; band < numbands+1; band++){
-             pixValsMat(band);
-          }
-               }
+            GDALClose(file1);
+            GDALClose(file2);
 
-               int main()
-               {
+         }
 
-                  radcal();
-                  return 0;
-               }
+         int main()
+         {
+
+            radcal();
+            return 0;
+         }

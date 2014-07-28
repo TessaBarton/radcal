@@ -160,45 +160,58 @@ std::vector<double>& y, RESULTS& results)// needs to return vector of gain and o
          ***************************************************************************/
          void normalize(GDALDataset* file,MatrixXd gainsandoffsets){
 
-            //create outfile
+           //create outfile
 
-            string format      = "GTiff";
-            string output_file = "output_file";
-            int ncol        = file->GetRasterYSize();
-            int nrow        = file->GetRasterXSize();
-            int nBands      = file->GetRasterCount();
-            GdalFileIO::getOutputFileInfo(output_file, format);
-            GDALDriver* outdriver =GetGDALDriverManager()->GetDriverByName(format.c_str());
-            GDALDataset *outfile  = outdriver->Create(output_file.c_str(),ncol,nrow,
-                                           nBands + 1, GDT_Float64, NULL);
-            int numbands= file->GetRasterCount();
-            int numpoints;
-            GDALRasterBand *inputband;
-            GDALRasterBand *outputband;
-            for( int band=1;band<numbands+1;band++){
-               inputband = file->GetRasterBand(band);
+           string format      = "GTiff";
+           string output_file = "output_file";
+           int ncol        = file->GetRasterYSize();
+           int nrow        = file->GetRasterXSize();
+           int nBands      = file->GetRasterCount();
+           GdalFileIO::getOutputFileInfo(output_file, format);
+           GDALDriver* outdriver =GetGDALDriverManager()->GetDriverByName(format.c_str());
+           GDALDataset *outfile  = outdriver->Create(output_file.c_str(),ncol,nrow,
+           nBands, GDT_Float64, NULL);
+           int numbands= file->GetRasterCount();
+           GDALRasterBand *inputband;
+           GDALRasterBand *outputband;
 
-               int nXSize = inputband->GetXSize();
-               int nYSize = inputband->GetYSize();
-               double gain   = gainsandoffsets(band,0);
-               double offset = gainsandoffsets(band,1);
-               for(int pixel = 0;pixel<nXSize; pixel++){
-                  for(int line =0; line<nYSize; line++){
-                     double * value;
-                     value = (double *) CPLMalloc(sizeof(double)*nXSize);
-                     inputband->RasterIO( GF_Read, pixel, line, 1, 1,value, 1 /*nXSize*/, 1, GDT_Float64,
-                     0, 0 );
-                     if (*value>1){ // so 1 means no data need to handle this!
-                     *value = *value*gain + offset;
+           //create buffer
+           double * tile= new double[ncol];
 
-                  }
 
-                     CPLFree(value);
-                  }
-               }
-            }
 
+           for( int band=1;band<numbands+1;band++){
+             inputband = file->GetRasterBand(band);
+             outputband = outfile->GetRasterBand(band);
+             cout << "fetched bands\n";
+             double gain   = gainsandoffsets(band-1,0);
+             double offset = gainsandoffsets(band-1,1);
+             for(int row = 0;row<nrow; row++){
+               inputband->RasterIO( GF_Read, 0, row, ncol, 1,tile, ncol, 1, GDT_Float64,0,
+               0);
+               //cout << "got input band =>";
+
+               for(int pixel =0; pixel < ncol; pixel ++){
+                 double value = tile[pixel];
+                 if (value>1){ // so 1 means no data need to handle this!
+                   value = value*gain + offset;
+                   tile[pixel]=value;}
+                   else{
+                     tile[pixel]=1;
+                   }
+                 }
+
+                // outputband->RasterIO( GF_Write, 0, row, ncol, 1,tile, ncol, 1, GDT_Float64,0,
+                //    0);
+                   //cout << "wrote output band \n";
+             }
+           }
+
+           delete[] tile;
          }
+
+
+
          /**************************************************************************
          *   Radcal
          ***************************************************************************/

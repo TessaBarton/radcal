@@ -12,6 +12,8 @@
 
 using namespace Eigen;
 
+inline int min(int a, int b){  return a < b ? a : b; }
+
 /* This file contains the headers for the iMad project. */
 /* All GDAL functions derive from gdal_priv.h           */
 /* Namespaces are named after their .cpp files, e.g. all functions in namespace
@@ -32,7 +34,8 @@ namespace GdalFileIO{
   void getOutputFileInfo(std::string& output_file, std::string& format);
   void writeOutputToFile(GDALDataset* outfile, double* tile,
                          MatrixXd& A, MatrixXd& B, //Eigenvector matrices
-                         int xoffset, int yoffset, int ncol, int nrow,
+                         int x10, int y10, int x20, int y20,
+                         int ncol, int nrow, int nb_pr, int bufsize,
                          GDALRasterBand** bands_1,
                          GDALRasterBand** bands_2,
                          GDALDataset* reference_file,

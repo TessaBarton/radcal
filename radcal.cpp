@@ -57,24 +57,42 @@ using Eigen::VectorXd;
 /**************************************************************************
 *   Data points input
 ***************************************************************************/
-vector<pair<int,int> > * xyget(){
+vector<pair<int,int> > * xyget(string& filename,double threshold){
 
-   vector<pair<int,int> > * generatedpoints = new vector<pair<int,int> >();
-   generatedpoints->push_back(make_pair(1,1));
-   generatedpoints->push_back(make_pair(9733	,11170	));
-   generatedpoints->push_back(make_pair(10946, 3574));
+  vector<pair<int,int> > * staticPoints = new vector<pair<int,int> >();
 
-   generatedpoints->push_back(make_pair(13862,12724));
-   generatedpoints->push_back(make_pair(6520,10070));
-   generatedpoints->push_back(make_pair(16168, 13875));
-   generatedpoints->push_back(make_pair(8449, 5886));
-   generatedpoints->push_back(make_pair(479, 6309));
-   generatedpoints->push_back(make_pair(1213,5256));
-   generatedpoints->push_back(make_pair(10283,1856));
+  // open file nielson paper 2003
+  string maskImage   = "C++_asd.tif";
+  GDALDataset* file  = GdalFileIO::openFile(maskImage);
+  int ncol        = file->GetRasterYSize();
+  int nrow        = file->GetRasterXSize();
+  int lastband    = file->GetRasterCount();
 
-   return generatedpoints;
+  double * tile= new double[ncol];
+  GDALRasterBand *inputband= file->GetRasterBand(lastband);
+
+  // read in change probabilities
+  for(int row = 0;row<nrow; row++){
+    inputband->RasterIO( GF_Read, 0, row, ncol, 1,tile, ncol, 1, GDT_Float64,0,
+    0);
+    for(int col= 0; col<ncol;col++){
+      if(tile[col]>threshold){
+        staticPoints->push_back(make_pair(col,row));
+      }
+
+    }
+    cout << "point: " << staticPoints->at(row).first << "," << staticPoints->at(row).second << "\n";
+  }
+
+
+
+
+
+   delete[] tile;
+   return staticPoints;
 
 }
+
 
 /**************************************************************************
 *   Linear Regression Code (from Donovan Parks)
@@ -121,7 +139,6 @@ std::vector<double>& y, RESULTS& results)// needs to return vector of gain and o
          else
             {
                results.slope = DBL_MAX;
-
                results.cod = 1;
                results.r = -1;
             }
@@ -160,13 +177,15 @@ std::vector<double>& y, RESULTS& results)// needs to return vector of gain and o
          ***************************************************************************/
          void normalize(GDALDataset* file,MatrixXd gainsandoffsets){
 
-           //create outfile
-
+           //vars
+           int MaxVal = 255;
            string format      = "GTiff";
            string output_file = "output_file";
            int ncol        = file->GetRasterYSize();
            int nrow        = file->GetRasterXSize();
            int nBands      = file->GetRasterCount();
+
+           //create outfile
            GdalFileIO::getOutputFileInfo(output_file, format);
            GDALDriver* outdriver =GetGDALDriverManager()->GetDriverByName(format.c_str());
            GDALDataset *outfile  = outdriver->Create(output_file.c_str(),ncol,nrow,
@@ -178,8 +197,7 @@ std::vector<double>& y, RESULTS& results)// needs to return vector of gain and o
            //create buffer
            double * tile= new double[ncol];
 
-
-
+           // Main loop
            for( int band=1;band<numbands+1;band++){
              inputband = file->GetRasterBand(band);
              outputband = outfile->GetRasterBand(band);
@@ -193,16 +211,22 @@ std::vector<double>& y, RESULTS& results)// needs to return vector of gain and o
 
                for(int pixel =0; pixel < ncol; pixel ++){
                  double value = tile[pixel];
+                 //cout << value;
                  if (value>1){ // so 1 means no data need to handle this!
                    value = value*gain + offset;
-                   tile[pixel]=value;}
+                   if(value>MaxVal){
+                     value = MaxVal;
+                   }
+                   tile[pixel]=value;
+                 }
                    else{
                      tile[pixel]=1;
                    }
+                   //cout << value << "\n";
                  }
 
-                // outputband->RasterIO( GF_Write, 0, row, ncol, 1,tile, ncol, 1, GDT_Float64,0,
-                //    0);
+                outputband->RasterIO( GF_Write, 0, row, ncol, 1,tile, ncol, 1, GDT_Float64,0,
+                   0);
                    //cout << "wrote output band \n";
              }
            }
@@ -217,6 +241,7 @@ std::vector<double>& y, RESULTS& results)// needs to return vector of gain and o
          ***************************************************************************/
          void radcal(){
 
+
             GDALAllRegister();
             OGRSpatialReference oSRS;
             // inputs
@@ -226,7 +251,13 @@ std::vector<double>& y, RESULTS& results)// needs to return vector of gain and o
             GDALDataset* file1 = GdalFileIO::openFile(filename);
             GDALDataset* file2 = GdalFileIO::openFile(filenameagain);
 
-            vector<pair<int,int> > *generatedpoints = xyget();
+            // find xy of the points above threshold t
+            double threshold = 1;
+            string maskImage = "C++_asd.tif";
+            vector<pair<int,int> > *generatedpoints = xyget(maskImage,threshold);// refactor to static points
+
+
+
 
             int   nXSize = file1->GetRasterXSize();
             int   nYSize = file1-> GetRasterYSize();
@@ -313,7 +344,7 @@ std::vector<double>& y, RESULTS& results)// needs to return vector of gain and o
 
          }
 
-               int main()
+               int main()// probably should take stuff like threshhold value, image 1, image 2 etc.
                {
 
                   radcal();

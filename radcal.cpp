@@ -221,7 +221,7 @@ vector<pair<int,int> > * xyget(string& filename,double threshold){ // nielson pa
   vector<pair<int,int> > * staticPoints = new vector<pair<int,int> >();
 
   // open file
-  string maskImage   = "C++_asd.tif";
+  string maskImage   = "pyasd.tif";
   GDALDataset* file  = GdalFileIO::openFile(maskImage);
   int ncol        = file->GetRasterXSize();
   int nrow        = file->GetRasterYSize();
@@ -233,20 +233,20 @@ vector<pair<int,int> > * xyget(string& filename,double threshold){ // nielson pa
   inputPixel * inputImage = new inputPixel[nrow*ncol];
 
   GDALRasterBand *inputband= file->GetRasterBand(lastband);
-  double * tile= new double[ncol];
+  float * tile= new float[ncol];
   // read in change probabilities
   for(int row = 0;row<nrow; row++){
     inputband->RasterIO( GF_Read, 0, row, ncol, 1,tile, ncol,
-     1, GDT_Float64,0,0);
+     1, GDT_Float32,0,0);
 
     for(int col= 0; col<ncol;col++){
-        // cout << tile[col]<< ",";
-        // if (tile[col] >=0 && tile[col] <10) {histogram[0]++; }
-        // else if (tile[col] >=10 && tile[col] <100) {histogram[1]++; }
-        // else if (tile[col] >= 100 && tile[col] <1000) {histogram[2]++; }
-        // else if (tile[col] >=100 && tile[col] <1000) {histogram[3]++; }
-        // else if (tile[col] >=1000 && tile[col] <10000) {histogram[4]++; }
-        // else if (tile[col] >=10000 && tile[col] <100000) {histogram[5]++; }
+        //cout << tile[col]<< ",";
+        if (tile[col] >=0 && tile[col] <10) {histogram[0]++; }
+        else if (tile[col] >=10 && tile[col] <100) {histogram[1]++; }
+        else if (tile[col] >= 100 && tile[col] <1000) {histogram[2]++; }
+        else if (tile[col] >=100 && tile[col] <1000) {histogram[3]++; }
+        else if (tile[col] >=1000 && tile[col] <10000) {histogram[4]++; }
+        else if (tile[col] >=10000 && tile[col] <100000) {histogram[5]++; }
       inputImage[row + col].radiance = tile[col];
       inputImage[row+col].x = col;
       inputImage[row+col].y = row;
@@ -255,20 +255,20 @@ vector<pair<int,int> > * xyget(string& filename,double threshold){ // nielson pa
     // sort probabilites
     sort(inputImage,inputImage +(nrow*ncol), [](const inputPixel &a, const inputPixel  &b){ return a.radiance < b.radiance; });
 
-    // //histogram of values, hmm chi squared interface?
-    // cout<< "0:10 ="<< histogram[0];
-    // //for (int i=0;i<histogram[0];i++) {cout << "*"; }
-    // cout << "\n"<< "10:100 = "<< histogram[1];
-    // //for (int i=0;i<histogram[1];i++) {cout << "*"; }
-    // cout << "\n"<< "100:1000 = "<< histogram[2];
-    // //for (int i=0;i<histogram[2];i++) {cout << "*"; }
-    // cout << "\n"<< "1000:10000 = "<< histogram[3];
-    // //for (int i=0;i<histogram[3];i++) {cout << "*"; }
-    // cout << "\n"<< "10000:100000 = "<< histogram[4]<< "\n";
-    // //for (int i=0;i<histogram[4];i++) {cout << "*"; }
+    //histogram of values, hmm chi squared interface?
+    cout<< "0:10 ="<< histogram[0];
+    //for (int i=0;i<histogram[0];i++) {cout << "*"; }
+    cout << "\n"<< "10:100 = "<< histogram[1];
+    //for (int i=0;i<histogram[1];i++) {cout << "*"; }
+    cout << "\n"<< "100:1000 = "<< histogram[2];
+    //for (int i=0;i<histogram[2];i++) {cout << "*"; }
+    cout << "\n"<< "1000:10000 = "<< histogram[3];
+    //for (int i=0;i<histogram[3];i++) {cout << "*"; }
+    cout << "\n"<< "10000:100000 = "<< histogram[4]<< "\n";
+    //for (int i=0;i<histogram[4];i++) {cout << "*"; }
 
-    // cout << inputImage[0].radiance << ",";
-    // cout << inputImage[ncol*nrow].radiance;
+    cout << inputImage[0].radiance << ",";
+    cout << inputImage[ncol*nrow].radiance;
 
 // still need to cut off values that are below threshold
 // still need to put the xy coords of those values in static points
@@ -306,100 +306,97 @@ vector<pair<int,int> > * xyget(string& filename,double threshold){ // nielson pa
 
 
 
-            int   nXSize = file1->GetRasterXSize();
-            int   nYSize = file1-> GetRasterYSize();
-            int numpoints =generatedpoints->size();
-            int numbands = file1->GetRasterCount();
-            MatrixXd pixValsMat(numbands,numpoints); // need to change to doubles
-            GDALRasterBand *rasterband;
-            int nBlockXSize, nBlockYSize;
-
-         // read in data from image one at points
-
-            for( int band=1;band<numbands+1;band++){
-               //cout << "_____" << "band" << i << "____"<<"\n";
-               for(int point = 0;point<numpoints; point++){
-                  rasterband = file1->GetRasterBand(band);
-                  int pixel= generatedpoints-> at(point).first;
-                  int line = generatedpoints-> at(point).second;
-                  int nXSize = rasterband->GetXSize();
-                  double * value;
-
-                  value = (double *) CPLMalloc(sizeof(double));
-
-                  rasterband->RasterIO( GF_Read, pixel, line, 1, 1,value, 1 /*nXSize*/, 1, GDT_Float64,
-                  0, 0 );
-                  pixValsMat(band-1, point)=*value;
-                  //cout << *value<< "\n";
-
-                  CPLFree(value);
-               }
-            }
-
-            // read in data from image 2 at points
-
-            MatrixXd pixValsMat2(numbands,numpoints);
-            for( int band=1;band<numbands+1;band++){
-               //cout << "_____" << "band" << i << "____"<<"\n";
-               for(int point = 0;point<numpoints; point++){
-                  rasterband = file2->GetRasterBand(band);
-                  int pixel= generatedpoints-> at(point).first;
-                  int line = generatedpoints-> at(point).second;
-                  int nXSize = rasterband->GetXSize();
-                  double * value;
-<<<<<<< HEAD
-                  value = (double *) CPLMalloc(sizeof(double));
-=======
-                  value = (double *) CPLMalloc(sizeof(double)*nXSize);
->>>>>>> c76a2baae3282ae5aa52f7de10d84622c052f8a7
-                  rasterband->RasterIO( GF_Read, pixel, line, 1, 1,value, 1 /*nXSize*/, 1, GDT_Float64,
-                  0, 0 );
-                  pixValsMat2(band-1, point)=*value;
-                  //cout << *value<< "\n";
-
-                  CPLFree(value);
-               }
-            }
-
-
-            /*run Regression*/
-            MatrixXd lrparams(numbands,2);
-
-            // vectors are rows, pass vectors to linreg
-            for(int band =0; band < numbands; band++){
-
-               LinearRegression lin =LinearRegression();
-               double pixValsArr [numpoints];
-               for( int pixel = 0; pixel <numpoints; pixel++){
-                  pixValsArr[pixel] = pixValsMat(band,pixel);
-               }
-               vector<double> pixValsVec (pixValsArr, pixValsArr + sizeof(pixValsArr) / sizeof(double) );
-
-               double pixValsArr2[numpoints];
-               for( int pixel = 0; pixel <numpoints; pixel++){
-                  pixValsArr2[pixel] = pixValsMat2(band,pixel);
-               }
-               vector<double> pixValsVec2 (pixValsArr2, pixValsArr2 + sizeof(pixValsArr2) / sizeof(double) );
-               LinearRegression::RESULTS results = LinearRegression::RESULTS();
-               lin.LeastSquaresEstimate(pixValsVec, pixValsVec2,results);//member function
-               double gain = results.slope;
-               cout << "gain for band n : " <<gain <<"\n";
-               double offset = results.offset;
-               cout << "offset for band n : " <<offset <<"\n";
-               lrparams(band,0)=gain;
-               lrparams(band,1)=offset;
-
-            }
-         for(int x=0;x<numbands;x++){
-               for(int y=0;y<2;y++)  // loop for the three elements on the line
-                  {
-                     cout<<lrparams(x,y)<<" ";  // display the current element out of the array
-                  }
-                  cout<<endl;  // when the inner loop is done, go to a new line
-               }
-
-         // normalize file 2 using params
-         normalize(file2,lrparams);
+        //     int   nXSize = file1->GetRasterXSize();
+        //     int   nYSize = file1-> GetRasterYSize();
+        //     int numpoints =generatedpoints->size();
+        //     int numbands = file1->GetRasterCount();
+        //     MatrixXd pixValsMat(numbands,numpoints); // need to change to doubles
+        //     GDALRasterBand *rasterband;
+        //     int nBlockXSize, nBlockYSize;
+         //
+        //  // read in data from image one at points
+         //
+        //     for( int band=1;band<numbands+1;band++){
+        //        //cout << "_____" << "band" << i << "____"<<"\n";
+        //        for(int point = 0;point<numpoints; point++){
+        //           rasterband = file1->GetRasterBand(band);
+        //           int pixel= generatedpoints-> at(point).first;
+        //           int line = generatedpoints-> at(point).second;
+        //           int nXSize = rasterband->GetXSize();
+        //           double * value;
+         //
+        //           value = (double *) CPLMalloc(sizeof(double));
+         //
+        //           rasterband->RasterIO( GF_Read, pixel, line, 1, 1,value, 1 /*nXSize*/, 1, GDT_Float64,
+        //           0, 0 );
+        //           pixValsMat(band-1, point)=*value;
+        //           //cout << *value<< "\n";
+         //
+        //           CPLFree(value);
+        //        }
+        //     }
+         //
+        //     // read in data from image 2 at points
+         //
+        //     MatrixXd pixValsMat2(numbands,numpoints);
+        //     for( int band=1;band<numbands+1;band++){
+        //        //cout << "_____" << "band" << i << "____"<<"\n";
+        //        for(int point = 0;point<numpoints; point++){
+        //           rasterband = file2->GetRasterBand(band);
+        //           int pixel= generatedpoints-> at(point).first;
+        //           int line = generatedpoints-> at(point).second;
+        //           int nXSize = rasterband->GetXSize();
+        //           double * value;
+        //           value = (double *) CPLMalloc(sizeof(double));
+         //
+        //           rasterband->RasterIO( GF_Read, pixel, line, 1, 1,value, 1 /*nXSize*/, 1, GDT_Float64,
+        //           0, 0 );
+        //           pixValsMat2(band-1, point)=*value;
+        //           //cout << *value<< "\n";
+         //
+        //           CPLFree(value);
+        //        }
+        //     }
+         //
+         //
+        //     /*run Regression*/
+        //     MatrixXd lrparams(numbands,2);
+         //
+        //     // vectors are rows, pass vectors to linreg
+        //     for(int band =0; band < numbands; band++){
+         //
+        //        LinearRegression lin =LinearRegression();
+        //        double pixValsArr [numpoints];
+        //        for( int pixel = 0; pixel <numpoints; pixel++){
+        //           pixValsArr[pixel] = pixValsMat(band,pixel);
+        //        }
+        //        vector<double> pixValsVec (pixValsArr, pixValsArr + sizeof(pixValsArr) / sizeof(double) );
+         //
+        //        double pixValsArr2[numpoints];
+        //        for( int pixel = 0; pixel <numpoints; pixel++){
+        //           pixValsArr2[pixel] = pixValsMat2(band,pixel);
+        //        }
+        //        vector<double> pixValsVec2 (pixValsArr2, pixValsArr2 + sizeof(pixValsArr2) / sizeof(double) );
+        //        LinearRegression::RESULTS results = LinearRegression::RESULTS();
+        //        lin.LeastSquaresEstimate(pixValsVec, pixValsVec2,results);//member function
+        //        double gain = results.slope;
+        //        cout << "gain for band n : " <<gain <<"\n";
+        //        double offset = results.offset;
+        //        cout << "offset for band n : " <<offset <<"\n";
+        //        lrparams(band,0)=gain;
+        //        lrparams(band,1)=offset;
+         //
+        //     }
+        //  for(int x=0;x<numbands;x++){
+        //        for(int y=0;y<2;y++)  // loop for the three elements on the line
+        //           {
+        //              cout<<lrparams(x,y)<<" ";  // display the current element out of the array
+        //           }
+        //           cout<<endl;  // when the inner loop is done, go to a new line
+        //        }
+         //
+        //  // normalize file 2 using params
+        //  normalize(file2,lrparams);
          GDALClose(file1);
          GDALClose(file2);
 

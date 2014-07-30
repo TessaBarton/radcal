@@ -207,66 +207,78 @@ struct inputPixel {
   int y;
 };
 vector<pair<int,int> > * xyget(string& filename,double threshold){ // nielson paper 2003
+vector<pair<int,int> > * generatedpoints = new vector<pair<int,int> >();
+   generatedpoints->push_back(make_pair(1,1));
+   generatedpoints->push_back(make_pair(9733	,11170	));
+   generatedpoints->push_back(make_pair(10946, 3574));
 
-  vector<pair<int,int> > * staticPoints = new vector<pair<int,int> >();
-
-  // open file
-  string maskImage   = "C++_asd.tif";
-  GDALDataset* file  = GdalFileIO::openFile(maskImage);
-  int ncol        = file->GetRasterXSize();
-  int nrow        = file->GetRasterYSize();
-  int lastband    = file->GetRasterCount();
-  //cout << lastband;
-  int histogram[5];
-
-  /*initialize array of structs, array of doubles*/
-  inputPixel * inputImage = new inputPixel[nrow*ncol];
-
-  GDALRasterBand *inputband= file->GetRasterBand(lastband);
-  double * tile= new double[ncol];
-  // read in change probabilities
-  for(int row = 0;row<nrow; row++){
-    inputband->RasterIO( GF_Read, 0, row, ncol, 1,tile, ncol,
-     1, GDT_Float64,0,0);
-
-    for(int col= 0; col<ncol;col++){
-         cout << tile[col]<< ",";
-        // if (tile[col] >=0 && tile[col] <10) {histogram[0]++; }
-        // else if (tile[col] >=10 && tile[col] <100) {histogram[1]++; }
-        // else if (tile[col] >= 100 && tile[col] <1000) {histogram[2]++; }
-        // else if (tile[col] >=100 && tile[col] <1000) {histogram[3]++; }
-        // else if (tile[col] >=1000 && tile[col] <10000) {histogram[4]++; }
-        // else if (tile[col] >=10000 && tile[col] <100000) {histogram[5]++; }
-      inputImage[row + col].radiance = tile[col];
-      inputImage[row+col].x = col;
-      inputImage[row+col].y = row;
-    }
-    }
-    // sort probabilites
-    sort(inputImage,inputImage +(nrow*ncol), [](const inputPixel &a, const inputPixel  &b){ return a.radiance < b.radiance; });
-
-    // //histogram of values, hmm chi squared interface?
-    // cout<< "0:10 ="<< histogram[0];
-    // //for (int i=0;i<histogram[0];i++) {cout << "*"; }
-    // cout << "\n"<< "10:100 = "<< histogram[1];
-    // //for (int i=0;i<histogram[1];i++) {cout << "*"; }
-    // cout << "\n"<< "100:1000 = "<< histogram[2];
-    // //for (int i=0;i<histogram[2];i++) {cout << "*"; }
-    // cout << "\n"<< "1000:10000 = "<< histogram[3];
-    // //for (int i=0;i<histogram[3];i++) {cout << "*"; }
-    // cout << "\n"<< "10000:100000 = "<< histogram[4]<< "\n";
-    // //for (int i=0;i<histogram[4];i++) {cout << "*"; }
-
-    // cout << inputImage[0].radiance << ",";
-    // cout << inputImage[ncol*nrow].radiance;
-
-// still need to cut off values that are below threshold
-// still need to put the xy coords of those values in static points
-
-    delete[] tile;
-    delete[] inputImage;
-
-   return staticPoints;
+   generatedpoints->push_back(make_pair(13862,12724));
+   generatedpoints->push_back(make_pair(6520,10070));
+   generatedpoints->push_back(make_pair(16168, 13875));
+   generatedpoints->push_back(make_pair(8449, 5886));
+   generatedpoints->push_back(make_pair(479, 6309));
+   generatedpoints->push_back(make_pair(1213,5256));
+   generatedpoints->push_back(make_pair(10283,1856));
+   return generatedpoints;
+//   vector<pair<int,int> > * staticPoints = new vector<pair<int,int> >();
+//
+//   // open file
+//   string maskImage   = "C++_asd.tif";
+//   GDALDataset* file  = GdalFileIO::openFile(maskImage);
+//   int ncol        = file->GetRasterXSize();
+//   int nrow        = file->GetRasterYSize();
+//   int lastband    = file->GetRasterCount();
+//   //cout << lastband;
+//   int histogram[5];
+//
+//   /*initialize array of structs, array of doubles*/
+//   inputPixel * inputImage = new inputPixel[nrow*ncol];
+//
+//   GDALRasterBand *inputband= file->GetRasterBand(lastband);
+//   double * tile= new double[ncol];
+//   // read in change probabilities
+//   for(int row = 0;row<nrow; row++){
+//     inputband->RasterIO( GF_Read, 0, row, ncol, 1,tile, ncol,
+//      1, GDT_Float64,0,0);
+//
+//     for(int col= 0; col<ncol;col++){
+//         // cout << tile[col]<< ",";
+//         // if (tile[col] >=0 && tile[col] <10) {histogram[0]++; }
+//         // else if (tile[col] >=10 && tile[col] <100) {histogram[1]++; }
+//         // else if (tile[col] >= 100 && tile[col] <1000) {histogram[2]++; }
+//         // else if (tile[col] >=100 && tile[col] <1000) {histogram[3]++; }
+//         // else if (tile[col] >=1000 && tile[col] <10000) {histogram[4]++; }
+//         // else if (tile[col] >=10000 && tile[col] <100000) {histogram[5]++; }
+//       inputImage[row + col].radiance = tile[col];
+//       inputImage[row+col].x = col;
+//       inputImage[row+col].y = row;
+//     }
+//     }
+//     // sort probabilites
+//     sort(inputImage,inputImage +(nrow*ncol), [](const inputPixel &a, const inputPixel  &b){ return a.radiance < b.radiance; });
+//
+//     // //histogram of values, hmm chi squared interface?
+//     // cout<< "0:10 ="<< histogram[0];
+//     // //for (int i=0;i<histogram[0];i++) {cout << "*"; }
+//     // cout << "\n"<< "10:100 = "<< histogram[1];
+//     // //for (int i=0;i<histogram[1];i++) {cout << "*"; }
+//     // cout << "\n"<< "100:1000 = "<< histogram[2];
+//     // //for (int i=0;i<histogram[2];i++) {cout << "*"; }
+//     // cout << "\n"<< "1000:10000 = "<< histogram[3];
+//     // //for (int i=0;i<histogram[3];i++) {cout << "*"; }
+//     // cout << "\n"<< "10000:100000 = "<< histogram[4]<< "\n";
+//     // //for (int i=0;i<histogram[4];i++) {cout << "*"; }
+//
+//     // cout << inputImage[0].radiance << ",";
+//     // cout << inputImage[ncol*nrow].radiance;
+//
+// // still need to cut off values that are below threshold
+// // still need to put the xy coords of those values in static points
+//
+//     delete[] tile;
+//     delete[] inputImage;
+//
+//    return staticPoints;
  }
 
 
@@ -309,7 +321,7 @@ vector<pair<int,int> > * xyget(string& filename,double threshold){ // nielson pa
                   int line = generatedpoints-> at(point).second;
                   int nXSize = rasterband->GetXSize();
                   double * value;
-                  value = (double *) CPLMalloc(sizeof(double)*nXSize);
+                  value = (double *) CPLMalloc(sizeof(double));
                   rasterband->RasterIO( GF_Read, pixel, line, 1, 1,value, 1 /*nXSize*/, 1, GDT_Float64,
                   0, 0 );
                   pixValsMat(band-1, point)=*value;
@@ -329,7 +341,7 @@ vector<pair<int,int> > * xyget(string& filename,double threshold){ // nielson pa
                   int line = generatedpoints-> at(point).second;
                   int nXSize = rasterband->GetXSize();
                   double * value;
-                  value = (double *) CPLMalloc(sizeof(double)*nXSize);
+                  value = (double *) CPLMalloc(sizeof(double));
                   rasterband->RasterIO( GF_Read, pixel, line, 1, 1,value, 1 /*nXSize*/, 1, GDT_Float64,
                   0, 0 );
                   pixValsMat2(band-1, point)=*value;

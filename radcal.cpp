@@ -22,7 +22,7 @@ b*e used as points of no change for radiometric normalization. Using the (x,y
 /**************************************************************************
 *   INCLUDE FILES
 ***************************************************************************/
-// to compile g++ -I /usr/local/Cellar/eigen/3.2.1/include/eigen3 radcal.cpp GdalFileIO.cpp -lgdal
+// to compile g++ -std=c++11 -I /usr/local/Cellar/eigen/3.2.1/include/eigen3 radcal.cpp GdalFileIO.cpp -lgdal
 
 #include "gdal_priv.h"
 #include "cpl_conv.h" // for CPLMalloc()
@@ -39,6 +39,7 @@ b*e used as points of no change for radiometric normalization. Using the (x,y
 #include <vector>
 #include <iostream>
 #include <Eigen/Dense>
+#include <algorithm>
 
 
 #include <cmath>
@@ -53,45 +54,6 @@ using Eigen::MatrixXd;//this represents a matrix of arbitrary size (hence the X 
 using Eigen::VectorXd;
 
 
-
-/**************************************************************************
-*   Data points input
-***************************************************************************/
-vector<pair<int,int> > * xyget(string& filename,double threshold){
-
-  vector<pair<int,int> > * staticPoints = new vector<pair<int,int> >();
-
-  // open file nielson paper 2003
-  string maskImage   = "C++_asd.tif";
-  GDALDataset* file  = GdalFileIO::openFile(maskImage);
-  int ncol        = file->GetRasterYSize();
-  int nrow        = file->GetRasterXSize();
-  int lastband    = file->GetRasterCount();
-
-  double * tile= new double[ncol];
-  GDALRasterBand *inputband= file->GetRasterBand(lastband);
-
-  // read in change probabilities
-  for(int row = 0;row<nrow; row++){
-    inputband->RasterIO( GF_Read, 0, row, ncol, 1,tile, ncol, 1, GDT_Float64,0,
-    0);
-    for(int col= 0; col<ncol;col++){
-      if(tile[col]>threshold){
-        staticPoints->push_back(make_pair(col,row));
-      }
-
-    }
-    cout << "point: " << staticPoints->at(row).first << "," << staticPoints->at(row).second << "\n";
-  }
-
-
-
-
-
-   delete[] tile;
-   return staticPoints;
-
-}
 
 
 /**************************************************************************
@@ -236,6 +198,78 @@ std::vector<double>& y, RESULTS& results)// needs to return vector of gain and o
 
 
 
+/**************************************************************************
+*   Data points input
+***************************************************************************/
+struct inputPixel {
+  double radiance;
+  int x;
+  int y;
+};
+vector<pair<int,int> > * xyget(string& filename,double threshold){ // nielson paper 2003
+
+  vector<pair<int,int> > * staticPoints = new vector<pair<int,int> >();
+
+  // open file
+  string maskImage   = "C++_asd.tif";
+  GDALDataset* file  = GdalFileIO::openFile(maskImage);
+  int ncol        = file->GetRasterXSize();
+  int nrow        = file->GetRasterYSize();
+  int lastband    = file->GetRasterCount();
+  //cout << lastband;
+  int histogram[5];
+
+  /*initialize array of structs, array of doubles*/
+  inputPixel * inputImage = new inputPixel[nrow*ncol];
+
+  GDALRasterBand *inputband= file->GetRasterBand(lastband);
+  double * tile= new double[ncol];
+  // read in change probabilities
+  for(int row = 0;row<nrow; row++){
+    inputband->RasterIO( GF_Read, 0, row, ncol, 1,tile, ncol,
+     1, GDT_Float64,0,0);
+
+    for(int col= 0; col<ncol;col++){
+         cout << tile[col]<< ",";
+        // if (tile[col] >=0 && tile[col] <10) {histogram[0]++; }
+        // else if (tile[col] >=10 && tile[col] <100) {histogram[1]++; }
+        // else if (tile[col] >= 100 && tile[col] <1000) {histogram[2]++; }
+        // else if (tile[col] >=100 && tile[col] <1000) {histogram[3]++; }
+        // else if (tile[col] >=1000 && tile[col] <10000) {histogram[4]++; }
+        // else if (tile[col] >=10000 && tile[col] <100000) {histogram[5]++; }
+      inputImage[row + col].radiance = tile[col];
+      inputImage[row+col].x = col;
+      inputImage[row+col].y = row;
+    }
+    }
+    // sort probabilites
+    sort(inputImage,inputImage +(nrow*ncol), [](const inputPixel &a, const inputPixel  &b){ return a.radiance < b.radiance; });
+
+    // //histogram of values, hmm chi squared interface?
+    // cout<< "0:10 ="<< histogram[0];
+    // //for (int i=0;i<histogram[0];i++) {cout << "*"; }
+    // cout << "\n"<< "10:100 = "<< histogram[1];
+    // //for (int i=0;i<histogram[1];i++) {cout << "*"; }
+    // cout << "\n"<< "100:1000 = "<< histogram[2];
+    // //for (int i=0;i<histogram[2];i++) {cout << "*"; }
+    // cout << "\n"<< "1000:10000 = "<< histogram[3];
+    // //for (int i=0;i<histogram[3];i++) {cout << "*"; }
+    // cout << "\n"<< "10000:100000 = "<< histogram[4]<< "\n";
+    // //for (int i=0;i<histogram[4];i++) {cout << "*"; }
+
+    // cout << inputImage[0].radiance << ",";
+    // cout << inputImage[ncol*nrow].radiance;
+
+// still need to cut off values that are below threshold
+// still need to put the xy coords of those values in static points
+
+    delete[] tile;
+    delete[] inputImage;
+
+   return staticPoints;
+ }
+
+
          /**************************************************************************
          *   Radcal
          ***************************************************************************/
@@ -252,7 +286,7 @@ std::vector<double>& y, RESULTS& results)// needs to return vector of gain and o
             GDALDataset* file2 = GdalFileIO::openFile(filenameagain);
 
             // find xy of the points above threshold t
-            double threshold = 1;
+            double threshold = .05;
             string maskImage = "C++_asd.tif";
             vector<pair<int,int> > *generatedpoints = xyget(maskImage,threshold);// refactor to static points
 
@@ -266,7 +300,7 @@ std::vector<double>& y, RESULTS& results)// needs to return vector of gain and o
             MatrixXd pixValsMat(numbands,numpoints); // need to change to doubles
             GDALRasterBand *rasterband;
             int nBlockXSize, nBlockYSize;
-
+         // read in data from image one at points
             for( int band=1;band<numbands+1;band++){
                //cout << "_____" << "band" << i << "____"<<"\n";
                for(int point = 0;point<numpoints; point++){
@@ -284,6 +318,8 @@ std::vector<double>& y, RESULTS& results)// needs to return vector of gain and o
                   CPLFree(value);
                }
             }
+            // read in data from image 2 at points
+
             MatrixXd pixValsMat2(numbands,numpoints);
             for( int band=1;band<numbands+1;band++){
                //cout << "_____" << "band" << i << "____"<<"\n";
@@ -337,7 +373,7 @@ std::vector<double>& y, RESULTS& results)// needs to return vector of gain and o
                   cout<<endl;  // when the inner loop is done, go to a new line
                }
 
-
+         // normalize file 2 using params
          normalize(file2,lrparams);
          GDALClose(file1);
          GDALClose(file2);

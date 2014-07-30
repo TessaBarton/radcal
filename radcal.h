@@ -14,7 +14,9 @@
 /* All GDAL functions derive from gdal_priv.h           */
 
 namespace GdalFileIO{
+
       void getOutputFileInfo(std::string& output_file, std::string& format);
+
   GDALDataset* openFile(std::string filename);
   bool dimensionsmatch(GDALDataset* dataset1, GDALDataset* dataset2);
   std::vector<int>* selectBands();

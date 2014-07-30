@@ -1,12 +1,16 @@
+
 #include "gdal_priv.h"
 #include "imad.h"
+
 #include <vector>
 #include <iostream>
 #include <cstdlib>
 #include <string>
 #include <stdexcept>
+
 #include <math.h>
 #include <string.h> //Gdal libraries use const char*, need strcmp()
+
 
 using namespace std;
 
@@ -28,6 +32,7 @@ namespace GdalFileIO{
       }
       return dataset1;
     }
+
 
     /*************************************************************************/
     /* Checks input paramenters for all potential errors. This function should
@@ -97,8 +102,8 @@ namespace GdalFileIO{
 
 
 
-   
-    
+
+
 
     /*************************************************************************/
     void getOutputFileInfo(string& output_file, string& format){
@@ -112,6 +117,7 @@ namespace GdalFileIO{
         getline(std::cin, output_file);
       }
     }
+
 
 
 

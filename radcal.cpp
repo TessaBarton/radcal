@@ -22,7 +22,9 @@ b*e used as points of no change for radiometric normalization. Using the (x,y
 /**************************************************************************
 *   INCLUDE FILES
 ***************************************************************************/
+
 // to compile g++ -std=c++11 -I /usr/local/Cellar/eigen/3.2.1/include/eigen3 radcal.cpp GdalFileIO.cpp -lgdal
+
 
 #include "gdal_priv.h"
 #include "cpl_conv.h" // for CPLMalloc()
@@ -39,7 +41,9 @@ b*e used as points of no change for radiometric normalization. Using the (x,y
 #include <vector>
 #include <iostream>
 #include <Eigen/Dense>
+
 #include <algorithm>
+
 
 
 #include <cmath>
@@ -54,6 +58,11 @@ using Eigen::MatrixXd;//this represents a matrix of arbitrary size (hence the X 
 using Eigen::VectorXd;
 
 
+
+
+/**************************************************************************
+*   Data points input
+***************************************************************************/
 
 
 /**************************************************************************
@@ -101,6 +110,7 @@ std::vector<double>& y, RESULTS& results)// needs to return vector of gain and o
          else
             {
                results.slope = DBL_MAX;
+
                results.cod = 1;
                results.r = -1;
             }
@@ -134,6 +144,7 @@ std::vector<double>& y, RESULTS& results)// needs to return vector of gain and o
 
             return SSyy - slope*SSxy;
          }
+
          /**************************************************************************
          *   image alterations
          ***************************************************************************/
@@ -282,6 +293,7 @@ vector<pair<int,int> > * generatedpoints = new vector<pair<int,int> >();
  }
 
 
+
          /**************************************************************************
          *   Radcal
          ***************************************************************************/
@@ -297,10 +309,12 @@ vector<pair<int,int> > * generatedpoints = new vector<pair<int,int> >();
             GDALDataset* file1 = GdalFileIO::openFile(filename);
             GDALDataset* file2 = GdalFileIO::openFile(filenameagain);
 
+
             // find xy of the points above threshold t
             double threshold = .05;
             string maskImage = "C++_asd.tif";
             vector<pair<int,int> > *generatedpoints = xyget(maskImage,threshold);// refactor to static points
+
 
 
 
@@ -312,7 +326,9 @@ vector<pair<int,int> > * generatedpoints = new vector<pair<int,int> >();
             MatrixXd pixValsMat(numbands,numpoints); // need to change to doubles
             GDALRasterBand *rasterband;
             int nBlockXSize, nBlockYSize;
+
          // read in data from image one at points
+
             for( int band=1;band<numbands+1;band++){
                //cout << "_____" << "band" << i << "____"<<"\n";
                for(int point = 0;point<numpoints; point++){
@@ -321,7 +337,9 @@ vector<pair<int,int> > * generatedpoints = new vector<pair<int,int> >();
                   int line = generatedpoints-> at(point).second;
                   int nXSize = rasterband->GetXSize();
                   double * value;
+
                   value = (double *) CPLMalloc(sizeof(double));
+
                   rasterband->RasterIO( GF_Read, pixel, line, 1, 1,value, 1 /*nXSize*/, 1, GDT_Float64,
                   0, 0 );
                   pixValsMat(band-1, point)=*value;
@@ -330,6 +348,7 @@ vector<pair<int,int> > * generatedpoints = new vector<pair<int,int> >();
                   CPLFree(value);
                }
             }
+
             // read in data from image 2 at points
 
             MatrixXd pixValsMat2(numbands,numpoints);
@@ -341,7 +360,11 @@ vector<pair<int,int> > * generatedpoints = new vector<pair<int,int> >();
                   int line = generatedpoints-> at(point).second;
                   int nXSize = rasterband->GetXSize();
                   double * value;
+<<<<<<< HEAD
                   value = (double *) CPLMalloc(sizeof(double));
+=======
+                  value = (double *) CPLMalloc(sizeof(double)*nXSize);
+>>>>>>> c76a2baae3282ae5aa52f7de10d84622c052f8a7
                   rasterband->RasterIO( GF_Read, pixel, line, 1, 1,value, 1 /*nXSize*/, 1, GDT_Float64,
                   0, 0 );
                   pixValsMat2(band-1, point)=*value;
@@ -350,11 +373,14 @@ vector<pair<int,int> > * generatedpoints = new vector<pair<int,int> >();
                   CPLFree(value);
                }
             }
+
+
             /*run Regression*/
             MatrixXd lrparams(numbands,2);
 
             // vectors are rows, pass vectors to linreg
             for(int band =0; band < numbands; band++){
+
                LinearRegression lin =LinearRegression();
                double pixValsArr [numpoints];
                for( int pixel = 0; pixel <numpoints; pixel++){

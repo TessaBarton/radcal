@@ -1,7 +1,12 @@
+
 a.out
 *.gch
 imad
 
+# Created by http://www.gitignore.io
+
+.hg
+*.tif
 ### C++ ###
 # Compiled Object files
 *.slo
@@ -23,9 +28,3 @@ imad
 # Executables
 *.exe
 *.out
-*.app
-
-# Text editors
-*\#    #Emacs
-*.swp  #Vim
-*\~    #Gedit

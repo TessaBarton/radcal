@@ -1,0 +1,8 @@
+Radiometric Normalization of Multispectral Images
+It is a C++ program ported from Python, with the eventual goal of making an R package.
+
+Required Packages
+
+Build: you will need the results from iMad, you will need the GDAL libraries, which can be acquired from the OSGEO website.
+
+You will also need the Eigen libraries.

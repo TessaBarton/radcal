@@ -42,7 +42,6 @@ b*e used as points of no change for radiometric normalization. Using the (x,y
 #include <Eigen/Dense>
 #include <algorithm>
 #include <cmath>
-#include <algorithm>
 
 /**************************************************************************
 *   NameSpaceIng
@@ -124,11 +123,11 @@ std::vector<double>& y, RESULTS& results)// needs to return vector of gain and o
 
             return SSyy - slope*SSxy;
          }
-         /**************************************************************************
-         *   image alterations: now we take one image, along with the matrix of gains
-         and offsets, alter each pixel from the file by the gains and offsets, and puts it
-         into an output file.
-         ***************************************************************************/
+/**************************************************************************
+*   image alterations: now we take one image, along with the matrix of gains
+and offsets, alter each pixel from the file by the gains and offsets, and puts it
+into an output file.
+***************************************************************************/
 
          void normalize(GDALDataset* file,MatrixXd gainsandoffsets){
 
@@ -183,7 +182,6 @@ std::vector<double>& y, RESULTS& results)// needs to return vector of gain and o
 
                 outputband->RasterIO( GF_Write, 0, row, ncol, 1,tile, ncol, 1, GDT_Float64,0,
                    0);
-                   cout << "wrote output band \n";
              }
            }
 
@@ -208,7 +206,9 @@ vector<pair<int,int> > * xyget(string& filename,double threshold){ /* extracts t
   string maskImage   = "pyasd.tif";
   GDALDataset* file  = GdalFileIO::openFile(maskImage);
   int ncol        = file->GetRasterXSize();
+  cout<< "pyasdcol =" << ncol;
   int nrow        = file->GetRasterYSize();
+  cout<< "pyasdrow =" << nrow;
   int lastband    = file->GetRasterCount();
   //cout << lastband;
   int histogram[5];
@@ -216,7 +216,7 @@ vector<pair<int,int> > * xyget(string& filename,double threshold){ /* extracts t
   /*initialize array of structs, array of doubles*/
   inputPixel * inputImage = new inputPixel[nrow*ncol];
 
-  GDALRasterBand *inputband= file->GetRasterBand(lastband);
+  GDALRasterBand *inputband= file->GetRasterBand(lastband); //introduce quadrants
   float * tile= new float[ncol];
   // read in change probabilities
   for(int row = 0;row<nrow; row++){
@@ -230,12 +230,12 @@ vector<pair<int,int> > * xyget(string& filename,double threshold){ /* extracts t
       inputImage[(row*ncol)+col].y = row;
 
         // count frequencies of various radiances among all the pixels
-        if (tile[col] >=0 && tile[col] <10) {histogram[0]++; }
-        else if (tile[col] >=10 && tile[col] <100) {histogram[1]++; }
-        else if (tile[col] >= 100 && tile[col] <1000) {histogram[2]++; }
-        else if (tile[col] >=100 && tile[col] <1000) {histogram[3]++; }
-        else if (tile[col] >=1000 && tile[col] <10000) {histogram[4]++; }
-        else if (tile[col] >=10000 && tile[col] <100000) {histogram[5]++; }
+        // if (tile[col] >=0 && tile[col] <10) {histogram[0]++; }
+        // else if (tile[col] >=10 && tile[col] <100) {histogram[1]++; }
+        // else if (tile[col] >= 100 && tile[col] <1000) {histogram[2]++; }
+        // else if (tile[col] >=100 && tile[col] <1000) {histogram[3]++; }
+        // else if (tile[col] >=1000 && tile[col] <10000) {histogram[4]++; }
+        // else if (tile[col] >=10000 && tile[col] <100000) {histogram[5]++; }
 
 
     }
@@ -245,16 +245,12 @@ vector<pair<int,int> > * xyget(string& filename,double threshold){ /* extracts t
     sort(inputImage,inputImage +(nrow*ncol), [](const inputPixel &a, const inputPixel  &b){ return a.radiance < b.radiance; });
 
     //histogram of values, hmm chi squared interface?
-    cout<< "0:10 ="<< histogram[0];
-    //for (int i=0;i<histogram[0];i++) {cout << "*"; }
-    cout << "\n"<< "10:100 = "<< histogram[1];
-    //for (int i=0;i<histogram[1];i++) {cout << "*"; }
-    cout << "\n"<< "100:1000 = "<< histogram[2];
-    //for (int i=0;i<histogram[2];i++) {cout << "*"; }
-    cout << "\n"<< "1000:10000 = "<< histogram[3];
-    //for (int i=0;i<histogram[3];i++) {cout << "*"; }
-    cout << "\n"<< "10000:100000 = "<< histogram[4]<< "\n";
-    //for (int i=0;i<histogram[4];i++) {cout << "*"; }
+    // cout<< "0:10 ="<< histogram[0];
+    // cout << "\n"<< "10:100 = "<< histogram[1];
+    // cout << "\n"<< "100:1000 = "<< histogram[2];
+    // cout << "\n"<< "1000:10000 = "<< histogram[3];
+    // cout << "\n"<< "10000:100000 = "<< histogram[4]<< "\n";
+
 
     //cout << inputImage[5].radiance << ",";
     //cout << inputImage[(ncol*nrow)-1].radiance << "\n";
@@ -287,19 +283,16 @@ vector<pair<int,int> > * xyget(string& filename,double threshold){ /* extracts t
          /**************************************************************************
          *   Radcal
          ***************************************************************************/
-         void radcal(){
+         void radcal(string filename1="",string filename2="",float * threshold_percentage=NULL){
 
             GDALAllRegister();
             OGRSpatialReference oSRS;
 
-            // inputs, need to be able to put in, open files
-            string filename="tjpeg.tif";
-            string filenameagain = "tjpeg.tif";
-
-            GDALDataset* file1 = GdalFileIO::openFile(filename);
-            GDALDataset* file2 = GdalFileIO::openFile(filenameagain);
+            GDALDataset* file1 = GdalFileIO::openFile(filename1);
+            GDALDataset* file2 = GdalFileIO::openFile(filename2);
             int   nXSize = file1->GetRasterXSize();
             int   nYSize = file1-> GetRasterYSize();
+            cout<< "tjpeg.tif size= "<<nXSize<< ","<<nYSize;
 
             int numbands = file1->GetRasterCount();
 
@@ -400,11 +393,12 @@ vector<pair<int,int> > * xyget(string& filename,double threshold){ /* extracts t
          GDALClose(file2);
 
          }
-         
-// dummy main
 
+// dummy main
 int main()// probably should take stuff like threshhold value, image 1, image 2 etc.
      {
-       radcal();
+       string file1 = "tjpeg.tif";
+       string file2 = "tjpeg.tif";
+       radcal(file1,file2);
        return 0;
     }

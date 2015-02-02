@@ -8,3 +8,4 @@ of NOT being changed and from that b.) how the images should look once noise has
 - 2 hyperspectral satallite images (put the file paths in the main function)
 - GDAL libraries, which can be acquired from the OSGEO website.
 - You will also need the Eigen libraries.
+heavy lifting performance-wise goes on in radcal.cpp
